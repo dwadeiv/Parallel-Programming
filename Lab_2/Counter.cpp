@@ -30,7 +30,7 @@ Counters::~Counters() {
 }
 
 // Barrier counter
-void* fork_barrierCounter(void* args){
+static void* fork_barrierCounter(void* args){
 
     counter_args* inArgs = (counter_args*)args;
     int tid = inArgs->tid;
@@ -61,7 +61,7 @@ void* fork_barrierCounter(void* args){
 }
 
 // Lock counter
-void* fork_lockCounter(void* args){
+static void* fork_lockCounter(void* args){
     
     counter_args* inArgs = (counter_args*)args;
     int tid = inArgs->tid;

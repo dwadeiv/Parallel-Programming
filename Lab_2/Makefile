@@ -1,7 +1,7 @@
 all: mysort counter
 
-mysort: Driver_mysort.o Bucket_Sort.o Locks.o Barriers.o
-	g++  Driver_mysort.o Bucket_Sort.o Locks.o Barriers.o -pthread -O0 -g -o mysort
+mysort: Driver_mysort.o Bucket_Sort.o Locks.o Barriers.o array.o
+	g++  Driver_mysort.o Bucket_Sort.o Locks.o Barriers.o array.o -pthread -O0 -g -o mysort
 
 counter: Driver_counter.o Counter.o Locks.o Barriers.o
 	g++  Driver_counter.o Counter.o Locks.o Barriers.o -pthread -O0 -g -o counter
@@ -23,6 +23,9 @@ Locks.o: Locks.cpp
 
 Barriers.o: Barriers.cpp
 	g++ -c -g Barriers.cpp
+
+array.o: array.cpp
+	g++ -c -g array.cpp
 
 clean:
 	rm *.o mysort

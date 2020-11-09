@@ -15,15 +15,6 @@
 #include <vector>
 #include "Merge_Sort.hpp"
 #include "Bucket_Sort.hpp"
-
-using namespace std;
-
-// Global Variables
-pthread_t* threads;
-size_t NUM_THREADS;
-pthread_barrier_t bar;
-pthread_mutex_t lock;
-
-vector<int> interest_data;
+#include "array.hpp"
 
 #endif

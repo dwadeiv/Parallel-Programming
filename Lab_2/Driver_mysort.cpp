@@ -5,30 +5,6 @@ using std::ofstream;
 
 struct timespec start, finish;
 
-int* resize(int* arrayPtr, int &capacity)
-{
-	// Increase the capacity by two times
-	 int newCapacity = capacity * 2;
-
-	// Dynamically allocate an array of size newCapacity
-	 int *newArray = new int[newCapacity];
-
-	// Copy all data from oldArray to newArray
-	for(int i = 0; i < capacity; i ++){
-		newArray[i] = arrayPtr[i];
-	}
-
-	// Free the memory associated with oldArray
-	delete arrayPtr;
-
-	capacity = newCapacity;
-
-	// Return the newArray
-	return newArray;
-
-}
-
-
 int main(int argc, char* argv[]){
 	
 	// parse args
@@ -141,6 +117,8 @@ int main(int argc, char* argv[]){
 	int index = 0;
     string line;
 
+	Array array;
+
     // Parsing through input file and inserting data into a vector
 
     if(inFile.is_open()) {
@@ -150,7 +128,7 @@ int main(int argc, char* argv[]){
 			// Array needs to be resized
 			if(index == capacity) {
 
-				interest_data = resize(interest_data, capacity);
+				interest_data = array.resize(interest_data, capacity);
 
 			}
 

@@ -16,7 +16,8 @@
 #include <cmath>
 
 
-using namespace std;
+using std::vector;
+using std::map;
 
 struct bucketSort_args {
 
@@ -32,7 +33,18 @@ struct bucketSort_args {
 
 };
 
-void bucketSort(int data[], int size, int number_of_threads, pthread_t* threads, pthread_barrier_t *bar, pthread_mutex_t *lock);
-void* fork_bucketSort(void* args);
+class BucketSort
+{
+	private:
+		pthread_t* threads;
+		pthread_barrier_t bar;
+        pthread_mutex_t lock;
+
+	public:
+		BucketSort(int number_of_threads);
+		~BucketSort();
+		void bucketSort(int data[], int size, int number_of_threads);
+
+};
 
 #endif

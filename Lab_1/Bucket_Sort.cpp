@@ -1,11 +1,30 @@
 #include "Bucket_Sort.hpp"
 
-using namespace std;
+using std::vector;
+using std::map;
+
+struct timespec start_bucket, finish_bucket;
+
+BucketSort::BucketSort(int number_of_threads) {
+
+    threads = (pthread_t*)(malloc(number_of_threads*sizeof(pthread_t)));
+    pthread_barrier_init(&bar, NULL, number_of_threads);
+	pthread_mutex_init(&lock, NULL);
+
+}
+
+BucketSort::~BucketSort() {
+
+    free(threads);
+    pthread_barrier_destroy(&bar);
+	pthread_mutex_destroy(&lock);
+
+}
 
 // Each thread will execute this method individually 
-void* fork_bucketSort(void* args){
+static void* fork_bucketSort(void* args){
 
-	// Extrracting arguments from the passed struct
+	// Extracting arguments from the passed struct
 	bucketSort_args* inArgs = (bucketSort_args*)args;
 	pthread_barrier_t *bar = inArgs->bar;
 	pthread_mutex_t *lock = inArgs->lock;
@@ -16,6 +35,13 @@ void* fork_bucketSort(void* args){
 	vector< map<int,int> >* buckets = inArgs->buckets;
 	int number_of_threads = inArgs->number_of_threads;
 	int max_value = inArgs->max_value;
+
+	pthread_barrier_wait(bar);
+
+	// START CLOCK
+	if(tid==1){
+		clock_gettime(CLOCK_MONOTONIC,&start_bucket);
+	}
 
 	pthread_barrier_wait(bar);
 
@@ -49,7 +75,7 @@ void* fork_bucketSort(void* args){
 }
 
 
-void bucketSort(int data[], int size, int number_of_threads, pthread_t* threads, pthread_barrier_t *bar, pthread_mutex_t *lock) {
+void BucketSort::bucketSort(int data[], int size, int number_of_threads) {
 
 	vector< map<int,int> > buckets;
 
@@ -73,14 +99,13 @@ void bucketSort(int data[], int size, int number_of_threads, pthread_t* threads,
 	// Size of data chunks each thread is responsible for 
 	int chunk_size = round(size / number_of_threads);
 
-
 	// launch threads
 	int ret; size_t i;
 	for(i=1; i < number_of_threads; i++){
 
 		bucketSort_args* bkArgs = new bucketSort_args;
-		bkArgs->bar = bar;
-		bkArgs->lock = lock;
+		bkArgs->bar = &bar;
+		bkArgs->lock = &lock;
 		bkArgs->data = data;
 		bkArgs->data_size = size;
 		bkArgs->chunk_size = chunk_size;
@@ -100,9 +125,8 @@ void bucketSort(int data[], int size, int number_of_threads, pthread_t* threads,
 	}
 
 	bucketSort_args* masterArgs = new bucketSort_args;
-	bucketSort_args* bkArgs = new bucketSort_args;
-	masterArgs->bar = bar;
-	masterArgs->lock = lock;
+	masterArgs->bar = &bar;
+	masterArgs->lock = &lock;
 	masterArgs->data = data;
 	masterArgs->data_size = size;
 	masterArgs->chunk_size = chunk_size;
@@ -111,7 +135,7 @@ void bucketSort(int data[], int size, int number_of_threads, pthread_t* threads,
 	masterArgs->number_of_threads = number_of_threads;
 	masterArgs->tid = 1;
 	fork_bucketSort((void*)masterArgs); // master also calls thread_main
-
+    
 	// join threads
 	for(size_t i=1; i<number_of_threads; i++){
 
@@ -124,6 +148,7 @@ void bucketSort(int data[], int size, int number_of_threads, pthread_t* threads,
 
 		}
 	}
+    
 
 
 	// Concatinating the sorted buckets into the original data array
@@ -135,7 +160,16 @@ void bucketSort(int data[], int size, int number_of_threads, pthread_t* threads,
 		}
 	}
 
+	clock_gettime(CLOCK_MONOTONIC,&finish_bucket);
+
+    unsigned long long elapsed_ns;  
+    elapsed_ns = (finish_bucket.tv_sec-start_bucket.tv_sec)*1000000000 + (finish_bucket.tv_nsec-start_bucket.tv_nsec);
+    printf("Elapsed (ns): %llu\n",elapsed_ns);
+
+	delete masterArgs;
+
 }
+
 
 
 
