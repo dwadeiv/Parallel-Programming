@@ -6,31 +6,24 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <pthread.h>
+#include <omp.h>
 #include <cmath>
 
 
-using namespace std;
+using std::vector;
 
-// Struct for arguments passed to the fork_mergeSort method
-struct mergeSort_args {
-
-	int tid;
-	vector<int>* data_chunks;
-	pthread_barrier_t *bar;
-
-};
 
 class MergeSort
 {
     private:
-        pthread_t* threads;
-        pthread_barrier_t bar;
+
+        vector<int> *data_chunks;
 
     public:
-        MergeSort(int number_of_threads);
+        MergeSort();
         ~MergeSort();
-        vector<int> parallelMergeSort(vector<int> data, int number_of_threads);
+        vector<int> parallelMergeSort(vector<int> data);
+
 };
 
 #endif

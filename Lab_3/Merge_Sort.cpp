@@ -4,19 +4,9 @@ using std::vector;
 
 struct timespec start_merge, finish_merge;
 
-MergeSort::MergeSort(int number_of_threads) {
+MergeSort::MergeSort() {}
 
-    threads = (pthread_t*)(malloc(number_of_threads*sizeof(pthread_t)));
-    pthread_barrier_init(&bar, NULL, number_of_threads);
-
-}
-
-MergeSort::~MergeSort() {
-
-    free(threads);
-    pthread_barrier_destroy(&bar);
-
-}
+MergeSort::~MergeSort() {}
 
 static vector<int> mergeVectors(vector<int> vectorA, vector<int> vectorB){
 
@@ -95,43 +85,17 @@ static vector<int> mergeSort(vector<int> data) {
 
 }
 
-// Each thread will execute this method individually 
-static void* fork_mergeSort(void* args){
-
-	// Extrracting arguments from the passed struct
-	mergeSort_args* inArgs = (mergeSort_args*)args;
-	int tid = inArgs->tid;
-	vector<int>* data_chunks = inArgs->data_chunks;
-	pthread_barrier_t *bar = inArgs->bar;
-	
-	pthread_barrier_wait(bar);
-
-	// START CLOCK
-	if(tid==1){
-		clock_gettime(CLOCK_MONOTONIC,&start_merge);
-	}
-
-	pthread_barrier_wait(bar);
-	
-	// Calling mergeSort for each data chunk 
-	data_chunks[tid-1] = mergeSort(data_chunks[tid-1]);
-	
-	pthread_barrier_wait(bar);
-	
-	return 0;
-
-}
 
 // Method to split the data into number of chunks that equals the nummber of threads 
-static void Split_Data(vector<int> data, vector<int>* data_chunks, int chunk_size, int number_of_threads) {
+static void Split_Data(vector<int> data, vector<int>* data_chunks, int chunk_size, int number_of_chunks) {
 
 	int ending_index = chunk_size;
 	int starting_index = 0;
-
-	for(int i = 0; i < number_of_threads; i++) {
+    
+	for(int i = 0; i < number_of_chunks; i++) {
 
 		// If statement to handle the last chunk
-		if(i == number_of_threads - 1) {
+		if(i == number_of_chunks - 1) {
 			vector<int> chunk(data.begin() + starting_index,  data.end());
 			data_chunks[i] = chunk;
 			return;
@@ -148,60 +112,50 @@ static void Split_Data(vector<int> data, vector<int>* data_chunks, int chunk_siz
 
 }
 
-vector<int> MergeSort::parallelMergeSort(vector<int> data, int number_of_threads) {
+vector<int> MergeSort::parallelMergeSort(vector<int> data) {
+    
+    clock_gettime(CLOCK_MONOTONIC,&start_merge);
 
-    vector<int> data_chunks[number_of_threads];
-    int chunk_size = round(data.size() / number_of_threads);
 
-    Split_Data(data, data_chunks, chunk_size, number_of_threads);
+    #pragma omp parallel default(none) shared(data, data_chunks)
+    {
 
-    // launch threads
-    int ret; size_t i;
-    for(i=1; i < number_of_threads; i++){
+        int nthreads = omp_get_num_threads();
+        if(nthreads > data.size()) {
+            nthreads = (int)data.size();
+        }
+        int tid = omp_get_thread_num();
 
-        // Launch thread
-        mergeSort_args* msArgs = new mergeSort_args;
-		msArgs->bar = &bar;
-        msArgs->data_chunks = data_chunks;
-        msArgs->tid = i+1;
-
-        ret = pthread_create(&threads[i], NULL, &fork_mergeSort, (void*)msArgs);
-
-        if(ret){
-
-            printf("ERROR; pthread_create: %d\n", ret);
-            exit(-1);
+        #pragma omp single
+        {
+            data_chunks = new vector<int>[nthreads];
+            int chunk_size = round(data.size() / nthreads);
+            Split_Data(data, data_chunks, chunk_size, nthreads);
 
         }
-    }
+        
+        if(tid < (int)data.size() - 1) {
+            
+            data_chunks[tid] = mergeSort(data_chunks[tid]);
+            
+        }
+        
+        #pragma omp barrier
 
-    // Executing master thread 
-    mergeSort_args* masterArgs = new mergeSort_args;
-	masterArgs->bar = &bar;
-    masterArgs->data_chunks = data_chunks;
-    masterArgs->tid = 1;
-    fork_mergeSort((void*)masterArgs); // master also calls thread_main
+        #pragma omp single 
+        {
+            // Merging the sorted data chunks 
+            for(int i = 1; i < nthreads; i++) {
 
-    // join threads
-    for(size_t i = 1; i < number_of_threads; i++){
+                data_chunks[0] = mergeVectors(data_chunks[0], data_chunks[i]);
 
-        ret = pthread_join(threads[i],NULL);
-
-        if(ret){
-
-            printf("ERROR; pthread_join: %d\n", ret);
-            exit(-1);
+            }
 
         }
-    }
-
-    // Merging the sorted data chunks 
-    for(i = 1; i < number_of_threads; i++) {
-
-        data_chunks[0] = mergeVectors(data_chunks[0], data_chunks[i]);
 
     }
 
+    // mergeSort(data);
     clock_gettime(CLOCK_MONOTONIC,&finish_merge);
 
     unsigned long long elapsed_ns;  

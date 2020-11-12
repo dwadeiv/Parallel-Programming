@@ -14,7 +14,5 @@
 #include <sstream>
 #include <vector>
 #include "Merge_Sort.hpp"
-#include "Bucket_Sort.hpp"
-#include "array.hpp"
 
 #endif
